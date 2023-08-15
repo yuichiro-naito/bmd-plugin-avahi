@@ -11,7 +11,7 @@
 
 #include <bmd_plugin.h>
 
-#define AVAHI_PUBLISH "LOCALBASE""/bin/avahi-publish"
+#define AVAHI_PUBLISH LOCALBASE "/bin/avahi-publish"
 
 static int avahi_enable = 0;
 
