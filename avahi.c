@@ -130,6 +130,18 @@ avahi_status_change(struct vm *vm, nvlist_t *config)
 	}
 }
 
+void
+avahi_reload_config(nvlist_t *new_conf, nvlist_t *old_conf)
+{
+#define copy_conf(type, key)				\
+	if (nvlist_exists_##type(old_conf, (key)))	\
+		nvlist_add_##type(new_conf, (key),	\
+				  nvlist_get_##type(old_conf, (key)))
+	copy_conf(string, "name");
+	copy_conf(number, "port");
+	copy_conf(number, "pid");
+}
+
 PLUGIN_DESC plugin_desc = {
 	.version = PLUGIN_VERSION,
 	.name = "avahi",
@@ -137,5 +149,6 @@ PLUGIN_DESC plugin_desc = {
 	.finalize =  NULL,
 	.on_status_change = avahi_status_change,
 	.parse_config = NULL,
-	.method = NULL
+	.method = NULL,
+	.on_reload_config = avahi_reload_config,
 };
