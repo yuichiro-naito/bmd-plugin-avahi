@@ -1,4 +1,3 @@
-LOCALBASE?=	/usr/local
 MK_DEBUG_FILES=	no
 SHLIB=		bmdplugin_avahi
 SHLIB_MAJOR=	1
@@ -8,4 +7,7 @@ SRCS= 		avahi.c
 MAN=		bmd-plugin-avahi.8
 MANDIR=		$(LOCALBASE)/man/man
 
+WARNS?=		6
+
+.include "Makefile.inc"
 .include <bsd.lib.mk>
