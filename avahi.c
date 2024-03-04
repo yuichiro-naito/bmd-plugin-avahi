@@ -16,7 +16,7 @@
 static int avahi_enable = 0;
 
 static int
-avahi_initialize()
+avahi_initialize(void)
 {
 	if (access(AVAHI_PUBLISH, R_OK | X_OK) == 0)
 		avahi_enable = 1;
@@ -30,21 +30,31 @@ static int
 exec_avahi_publish(nvlist_t *config)
 {
 	pid_t pid;
-	char  *args[6];
-	sigset_t mask;
-
-	args[0] = AVAHI_PUBLISH;
-	args[1] = "-s";
-	args[2] = (char *)nvlist_get_string(config, "name");
-	args[3] = "_rfb._tcp";
-	args[4] = (char *)nvlist_get_string(config, "port");
-	args[5] = NULL;
-
-	sigemptyset(&mask);
-	sigaddset(&mask, SIGINT);
 
 	pid = fork();
 	if (pid == 0) {
+		FILE *fp;
+		char  **args, *buf;
+		size_t len;
+		sigset_t mask;
+
+		fp = open_memstream(&buf, &len);
+		if (fp == NULL)
+			exit(1);
+
+		fprintf(fp, "%s\n-s\n%s\n_rfb._tcp\n%s\n", AVAHI_PUBLISH,
+			nvlist_get_string(config, "name"),
+			nvlist_get_string(config, "port"));
+
+		fclose(fp);
+
+		args = split_args(buf);
+		if (args == NULL)
+			exit(1);
+
+		sigemptyset(&mask);
+		sigaddset(&mask, SIGINT);
+
 		sigprocmask(SIG_UNBLOCK, &mask, NULL);
 		execv(args[0], args);
 		exit(1);
@@ -56,7 +66,7 @@ exec_avahi_publish(nvlist_t *config)
 }
 
 static int
-on_timer(int id, void *data)
+on_timer(int id __unused, void *data)
 {
 	nvlist_t *config = data;
 	pid_t pid = exec_avahi_publish(config);
@@ -83,7 +93,7 @@ on_process_exit(int id, void *data)
 	return 0;
 }
 
-void
+static void
 set_params(nvlist_t *config, struct vm_conf *conf)
 {
 	char num[16];
@@ -130,7 +140,7 @@ avahi_status_change(struct vm *vm, nvlist_t *config)
 	}
 }
 
-void
+static void
 avahi_reload_config(nvlist_t *new_conf, nvlist_t *old_conf)
 {
 #define copy_conf(type, key)				\
