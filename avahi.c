@@ -161,4 +161,7 @@ PLUGIN_DESC plugin_desc = {
 	.parse_config = NULL,
 	.method = NULL,
 	.on_reload_config = avahi_reload_config,
+	.loader_method = NULL,
+	.prestart = NULL,
+	.poststop = NULL,
 };
