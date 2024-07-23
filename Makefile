@@ -5,7 +5,7 @@ CFLAGS+=	-I${LOCALBASE}/include -DLOCALBASE=\"${LOCALBASE}\"
 LIBDIR=		$(LOCALBASE)/libexec/bmd
 SRCS= 		avahi.c
 MAN=		bmd-plugin-avahi.8
-MANDIR=		$(LOCALBASE)/man/man
+MANDIR=		$(LOCALBASE)/share/man/man
 
 WARNS?=		6
 
