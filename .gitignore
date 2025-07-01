@@ -1,0 +1,6 @@
+.depend*
+*.o
+*.pico
+bmd-plugin-avahi.8.gz
+libbmdplugin_avahi.so
+libbmdplugin_avahi.so.1
