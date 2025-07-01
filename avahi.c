@@ -1,15 +1,14 @@
-#include <sys/wait.h>
+#include <sys/errno.h>
 #include <sys/signal.h>
 #include <sys/unistd.h>
+#include <sys/wait.h>
 
+#include <bmd_plugin.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
-
-#include <bmd_plugin.h>
 
 #define AVAHI_PUBLISH LOCALBASE "/bin/avahi-publish"
 
@@ -31,10 +30,11 @@ exec_avahi_publish(nvlist_t *config)
 {
 	pid_t pid;
 
-	pid = fork();
+	if ((pid = fork()) < 0)
+		return -1;
 	if (pid == 0) {
 		FILE *fp;
-		char  **args, *buf;
+		char **args, *buf;
 		size_t len;
 		sigset_t mask;
 
@@ -43,8 +43,8 @@ exec_avahi_publish(nvlist_t *config)
 			exit(1);
 
 		fprintf(fp, "%s\n-s\n%s\n_rfb._tcp\n%s\n", AVAHI_PUBLISH,
-			nvlist_get_string(config, "name"),
-			nvlist_get_string(config, "port"));
+		    nvlist_get_string(config, "name"),
+		    nvlist_get_string(config, "port"));
 
 		fclose(fp);
 
@@ -60,8 +60,7 @@ exec_avahi_publish(nvlist_t *config)
 		exit(1);
 	}
 
-	if (pid > 0)
-		plugin_wait_for_process(pid, on_process_exit, config);
+	plugin_wait_for_process(pid, on_process_exit, config);
 	return pid;
 }
 
@@ -77,7 +76,6 @@ on_timer(int id __unused, void *data)
 	}
 	return 0;
 }
-
 
 static int
 on_process_exit(int id, void *data)
@@ -96,18 +94,14 @@ on_process_exit(int id, void *data)
 static void
 set_params(nvlist_t *config, struct vm_conf *conf)
 {
-	char num[16];
-
 	if (nvlist_exists_string(config, "name"))
 		nvlist_free_string(config, "name");
 	if (nvlist_exists_string(config, "port"))
 		nvlist_free_string(config, "port");
 
 	nvlist_add_string(config, "name", get_name(conf));
-	snprintf(num, sizeof(num), "%d", get_fbuf_port(conf));
-	nvlist_add_string(config, "port", num);
+	nvlist_add_stringf(config, "port", "%d", get_fbuf_port(conf));
 }
-
 
 static void
 avahi_status_change(struct vm *vm, nvlist_t *config)
@@ -119,7 +113,8 @@ avahi_status_change(struct vm *vm, nvlist_t *config)
 		return;
 
 	pid = nvlist_exists_number(config, "pid") ?
-		nvlist_take_number(config, "pid") : 0;
+	    nvlist_take_number(config, "pid") :
+	    0;
 
 	switch (get_state(vm)) {
 	case LOAD:
@@ -143,10 +138,9 @@ avahi_status_change(struct vm *vm, nvlist_t *config)
 static void
 avahi_reload_config(nvlist_t *new_conf, nvlist_t *old_conf)
 {
-#define copy_conf(type, key)				\
-	if (nvlist_exists_##type(old_conf, (key)))	\
-		nvlist_add_##type(new_conf, (key),	\
-				  nvlist_get_##type(old_conf, (key)))
+#define copy_conf(type, key)                       \
+	if (nvlist_exists_##type(old_conf, (key))) \
+	nvlist_add_##type(new_conf, (key), nvlist_get_##type(old_conf, (key)))
 	copy_conf(string, "name");
 	copy_conf(number, "port");
 	copy_conf(number, "pid");
@@ -156,7 +150,7 @@ PLUGIN_DESC plugin_desc = {
 	.version = PLUGIN_VERSION,
 	.name = "avahi",
 	.initialize = avahi_initialize,
-	.finalize =  NULL,
+	.finalize = NULL,
 	.on_status_change = avahi_status_change,
 	.parse_config = NULL,
 	.method = NULL,
